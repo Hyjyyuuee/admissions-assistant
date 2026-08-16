@@ -1,0 +1,2 @@
+{"pages":["pages/chat/chat","pages/history/history"],"window":{"navigationBarTitleText":"Admissions Assistant","navigationBarBackgroundColor":"#173f5f","navigationBarTextStyle":"white"},"tabBar":{"list":[{"pagePath":"pages/chat/chat","text":"问答"},{"pagePath":"pages/history/history","text":"历史"}]},"style":"v2"}
+

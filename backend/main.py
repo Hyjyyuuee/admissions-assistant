@@ -191,4 +191,3 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)):
     ])
     db.commit()
     return {"conversation_id": conv.id, "answer": response_text, "sources": sources, "mode": mode}
-

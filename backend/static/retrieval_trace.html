@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admissions Retrieval Trace</title>
+  <style>
+    :root{--navy:#123b59;--blue:#1677d2;--ink:#163247;--muted:#678093;--line:#dbe7ef;--bg:#f3f7fa;--card:#fff;--green:#16a06f;--amber:#e19a22;--purple:#7657d8}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    header{background:linear-gradient(120deg,#123b59,#195d87);color:#fff;padding:24px max(24px,calc((100vw - 1180px)/2));box-shadow:0 4px 18px #123b5922}
+    header h1{margin:0;font-size:24px}header p{margin:6px 0 0;color:#cfe6f5;font-size:14px}
+    main{max-width:1180px;margin:22px auto;padding:0 20px 40px}.search{display:flex;gap:10px;background:#fff;padding:14px;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 24px #34566b0d}
+    input{flex:1;border:1px solid #c8d9e5;border-radius:9px;padding:12px 14px;font-size:16px;outline:none}input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1677d21a}
+    button{border:0;background:var(--blue);color:#fff;border-radius:9px;padding:0 22px;font-weight:650;cursor:pointer}button:disabled{opacity:.55}
+    .status{margin:12px 2px;color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 6px 24px #34566b0a}
+    .route{grid-column:span 4}.entities{grid-column:span 4}.tools{grid-column:span 4}.results{grid-column:span 7}.graph{grid-column:span 5}.history{grid-column:span 12}
+    h2{font-size:15px;margin:0 0 14px;color:#294d64}.pill{display:inline-flex;align-items:center;gap:6px;margin:0 6px 7px 0;padding:6px 9px;border-radius:999px;background:#edf5fb;color:#205b84;font-size:12px}.pill strong{font-weight:700}.empty{color:#8ba0ae;font-size:13px}
+    .primary{font-size:25px;font-weight:750;color:var(--blue);margin-bottom:8px}.subtle{font-size:12px;color:var(--muted);word-break:break-all}.result{padding:12px 0;border-top:1px solid #edf2f5}.result:first-of-type{border-top:0;padding-top:0}.result-title{font-weight:680;font-size:14px}.source{font-size:11px;color:var(--muted);margin:3px 0 9px}
+    .metric{display:grid;grid-template-columns:58px 1fr 46px;align-items:center;gap:7px;margin:5px 0;font-size:11px}.track{height:7px;background:#edf2f5;border-radius:8px;overflow:hidden}.bar{display:block;height:100%;border-radius:8px}.bm25{background:var(--amber)}.bge{background:var(--blue)}.gr{background:var(--purple)}.final{background:var(--green)}
+    .graph-wrap{min-height:270px;display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;gap:10px;padding:12px;background:#f8fbfd;border-radius:11px}.node{display:flex;align-items:center;justify-content:center;text-align:center;border-radius:50%;font-size:11px;padding:8px;box-shadow:0 2px 9px #27495d1a}.node.entity{width:78px;height:78px;background:#e8e2ff;color:#5033ad;border:2px solid #b9a8f7}.node.doc{width:105px;height:105px;background:#e6f3fd;color:#155b8f;border:2px solid #a5d2f2}.node.category{width:70px;height:70px;background:#def6ed;color:#0e7652;border:2px solid #8bd5bc}
+    .log{display:grid;grid-template-columns:1.2fr .7fr 1fr;gap:10px;padding:9px 0;border-top:1px solid #edf2f5;font-size:12px}.log:first-of-type{border-top:0}.log-route{color:var(--blue);font-weight:650}.error{color:#b34343}
+    @media(max-width:820px){.route,.entities,.tools,.results,.graph,.history{grid-column:span 12}.search{flex-direction:column}button{height:44px}.log{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header><h1>Admissions Retrieval Trace</h1><p>查看 Query Router、Knowledge Tools、Entities、BM25、BGE、Graph 与 RRF 最终排序</p></header>
+<main>
+  <form class="search" id="search"><input id="query" value="留学生申请奖学金需要上传哪些东西？" aria-label="检索问题"><button id="run">运行 Trace</button></form>
+  <div class="status" id="status">准备就绪</div>
+  <section class="grid">
+    <article class="card route"><h2>Query Router</h2><div id="route" class="empty">等待查询</div></article>
+    <article class="card entities"><h2>Entities</h2><div id="entities" class="empty">等待查询</div></article>
+    <article class="card tools"><h2>Selected Tools</h2><div id="tools" class="empty">等待查询</div></article>
+    <article class="card results"><h2>Hybrid Ranking</h2><div id="results" class="empty">等待查询</div></article>
+    <article class="card graph"><h2>Knowledge Graph</h2><div id="graph" class="graph-wrap"><span class="empty">等待查询</span></div></article>
+    <article class="card history"><h2>Recent Retrieval Logs</h2><div id="history" class="empty">尚无日志</div></article>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function pills(items,render){return items.length?items.map(x=>`<span class="pill">${render(x)}</span>`).join(''):'<span class="empty">无</span>'}
+function bars(r,max){const m=(v,k)=>Math.max(3,Math.round((v/(max[k]||1))*100));return `<div class="metric"><span>Final</span><span class="track"><i class="bar final" style="width:${m(r.final_score,'final_score')}%"></i></span><span>${r.final_score.toFixed(3)}</span></div><div class="metric"><span>BM25</span><span class="track"><i class="bar bm25" style="width:${m(r.bm25_score,'bm25_score')}%"></i></span><span>${r.bm25_score.toFixed(3)}</span></div><div class="metric"><span>BGE</span><span class="track"><i class="bar bge" style="width:${m(r.vector_score,'vector_score')}%"></i></span><span>${r.vector_score.toFixed(3)}</span></div><div class="metric"><span>Graph</span><span class="track"><i class="bar gr" style="width:${m(r.graph_score,'graph_score')}%"></i></span><span>${r.graph_score.toFixed(3)}</span></div>`}
+async function loadLogs(){try{const logs=await fetch('/api/retrieval/logs?limit=8').then(r=>r.json());$('history').innerHTML=logs.length?logs.map(l=>`<div class="log"><span>${esc(l.query)}</span><span class="log-route">${esc(l.route)}</span><span>${esc(l.tools.join(', '))}</span></div>`).join(''):'<span class="empty">发送小程序问题后会在这里出现日志</span>'}catch(e){$('history').innerHTML='<span class="error">日志加载失败</span>'}}
+async function run(query){$('run').disabled=true;$('status').textContent='正在运行三路检索…';try{const d=await fetch('/api/retrieval/trace?query='+encodeURIComponent(query)).then(r=>{if(!r.ok)throw Error(r.status);return r.json()});$('route').innerHTML=`<div class="primary">${esc(d.route.primary)}</div><div class="subtle">增强查询：${esc(d.enhanced_query)}</div>`;$('entities').innerHTML=pills(d.entities,e=>`<strong>${esc(e.value)}</strong> · ${esc(e.type)}`);$('tools').innerHTML=pills(d.tools,t=>`<strong>${esc(t.name)}</strong><br>${esc(t.category)}`);const max={};['final_score','bm25_score','vector_score','graph_score'].forEach(k=>max[k]=Math.max(...d.results.map(r=>r[k]),1e-9));$('results').innerHTML=d.results.length?d.results.map((r,i)=>`<div class="result"><div class="result-title">${i+1}. ${esc(r.title)}</div><div class="source">${esc(r.source)} · ${esc(r.category)}</div>${bars(r,max)}</div>`).join(''):'<span class="empty">没有检索结果</span>';const uniqueDocs=[...new Map(d.graph.related_documents.map(x=>[x.source,x])).values()].slice(0,5);const nodes=[...d.entities.map(e=>`<span class="node entity">${esc(e.value)}</span>`),`<span class="node category">${esc(d.route.primary)}</span>`,...uniqueDocs.map(x=>`<span class="node doc">${esc(x.title.split(' · ')[0])}</span>`)];$('graph').innerHTML=nodes.join('');$('status').textContent=`完成：${d.results.length} 个结果，${uniqueDocs.length} 份图关联文档`;await loadLogs()}catch(e){$('status').innerHTML='<span class="error">Trace 运行失败，请确认后端已重启。</span>'}finally{$('run').disabled=false}}
+$('search').addEventListener('submit',e=>{e.preventDefault();run($('query').value.trim())});loadLogs();run($('query').value);
+</script>
+</body>
+</html>

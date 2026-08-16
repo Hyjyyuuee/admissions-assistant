@@ -1,0 +1,2 @@
+<view class="list"><view wx:if="{{items.length === 0}}" class="empty">暂无历史对话</view><view wx:for="{{items}}" wx:key="id" class="item"><view>{{item.title}}</view><text>{{item.created_at}}</text></view></view>
+

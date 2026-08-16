@@ -81,4 +81,3 @@ BM25 会过滤常见中文问句停用词并提高文档标题权重；当前 RR
 - 健康检查：`http://127.0.0.1:8001/api/health`
 - 检索可视化：`http://127.0.0.1:8001/debug/retrieval`
 - 检索日志：`http://127.0.0.1:8001/api/retrieval/logs`
-
